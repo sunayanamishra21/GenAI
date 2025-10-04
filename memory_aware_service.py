@@ -111,6 +111,41 @@ class MemoryAwareService:
         self.save_memory()
         
         return self.current_session
+
+    def add_self_rag_turn(self, session_id: str, turn_data: Dict):
+        """Add a Self-RAG turn to the session"""
+        try:
+            session = self.get_session_by_id(session_id)
+            if session:
+                # Create a Self-RAG specific turn
+                self_rag_turn = ConversationTurn(
+                    turn_id=f"self_rag_{int(time.time())}",
+                    timestamp=datetime.now().isoformat(),
+                    user_input=turn_data.get("query", ""),
+                    ai_response=turn_data.get("response", ""),
+                    context={},
+                    metadata={
+                        "type": "self_rag",
+                        "evidence_count": turn_data.get("evidence_count", 0),
+                        "reflection_quality": turn_data.get("reflection_quality", "medium"),
+                        "reflection_issues": turn_data.get("reflection_issues", []),
+                        "timestamp": turn_data.get("timestamp", datetime.now().isoformat())
+                    }
+                )
+                
+                session.turns.append(self_rag_turn)
+                session.last_activity = datetime.now().isoformat()
+                self.save_memory()
+                
+        except Exception as e:
+            print(f"Error adding Self-RAG turn: {e}")
+
+    def get_session_by_id(self, session_id: str) -> Optional[ConversationSession]:
+        """Get session by ID"""
+        for session in self.sessions:
+            if session.session_id == session_id:
+                return session
+        return None
     
     def get_current_session(self) -> Optional[ConversationSession]:
         """Get the current active session"""
